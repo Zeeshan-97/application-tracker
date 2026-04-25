@@ -293,17 +293,32 @@ async function apiGet() {
 //     redirect: 'follow'
 //   });
 // }
-  async function apiPost(payload) {
-  // We use 'no-cors' only if standard fetch fails, 
-  // but 'follow' is the key here for Google's redirects.
-  const response = await fetch(state.scriptUrl, {
-    method: 'POST',
-    mode: 'cors', // Ensure CORS is requested
-    headers: { 'Content-Type': 'text/plain' }, // Google Apps Script likes text/plain for POST
-    body: JSON.stringify(payload),
-    redirect: 'follow' 
+//   async function apiPost(payload) {
+//   // We use 'no-cors' only if standard fetch fails, 
+//   // but 'follow' is the key here for Google's redirects.
+//   const response = await fetch(state.scriptUrl, {
+//     method: 'POST',
+//     mode: 'cors', // Ensure CORS is requested
+//     headers: { 'Content-Type': 'text/plain' }, // Google Apps Script likes text/plain for POST
+//     body: JSON.stringify(payload),
+//     redirect: 'follow' 
+//   });
+//   return response;
+// }
+  async function apiGet() {
+  // Using 'cache: no-store' and 'redirect: follow' is vital for Google Scripts
+  const url = state.scriptUrl + '?action=getAll';
+  const r = await fetch(url, {
+    method: 'GET',
+    mode: 'cors', 
+    redirect: 'follow' // This allows the browser to follow the 302 redirect
   });
-  return response;
+  
+  if (!r.ok) throw new Error('Network response was not ok');
+  
+  const data = await r.json();
+  if (data.error) throw new Error(data.error);
+  return data.jobs || [];
 }
 
 async function loadJobs() {
