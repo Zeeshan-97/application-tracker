@@ -285,13 +285,25 @@ async function apiGet() {
   return data.jobs || [];
 }
 
-async function apiPost(payload) {
-  await fetch(state.scriptUrl, {
+// async function apiPost(payload) {
+//   await fetch(state.scriptUrl, {
+//     method: 'POST',
+//     headers: { 'Content-Type': 'text/plain' },
+//     body: JSON.stringify(payload),
+//     redirect: 'follow'
+//   });
+// }
+  async function apiPost(payload) {
+  // We use 'no-cors' only if standard fetch fails, 
+  // but 'follow' is the key here for Google's redirects.
+  const response = await fetch(state.scriptUrl, {
     method: 'POST',
-    headers: { 'Content-Type': 'text/plain' },
+    mode: 'cors', // Ensure CORS is requested
+    headers: { 'Content-Type': 'text/plain' }, // Google Apps Script likes text/plain for POST
     body: JSON.stringify(payload),
-    redirect: 'follow'
+    redirect: 'follow' 
   });
+  return response;
 }
 
 async function loadJobs() {
