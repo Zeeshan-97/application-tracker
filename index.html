@@ -1,0 +1,692 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Job Application Tracker</title>
+<style>
+  /* ── Reset & Base ── */
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --bg: #f8f7f4;
+    --bg-card: #ffffff;
+    --bg-surface: #f0efe9;
+    --text: #1a1a18;
+    --text-muted: #737068;
+    --text-hint: #a09d96;
+    --border: rgba(0,0,0,0.10);
+    --border-strong: rgba(0,0,0,0.20);
+    --radius-sm: 6px;
+    --radius-md: 10px;
+    --radius-lg: 14px;
+    --font: 'Segoe UI', system-ui, -apple-system, sans-serif;
+    --font-mono: 'Cascadia Code', 'Fira Code', monospace;
+    --shadow: 0 1px 3px rgba(0,0,0,0.08);
+    --shadow-md: 0 4px 16px rgba(0,0,0,0.10);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #16160f;
+      --bg-card: #1e1e16;
+      --bg-surface: #252520;
+      --text: #f0ede6;
+      --text-muted: #9a9790;
+      --text-hint: #6a6760;
+      --border: rgba(255,255,255,0.08);
+      --border-strong: rgba(255,255,255,0.16);
+      --shadow: 0 1px 3px rgba(0,0,0,0.3);
+      --shadow-md: 0 4px 16px rgba(0,0,0,0.4);
+    }
+  }
+  body {
+    font-family: var(--font);
+    font-size: 14px;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    line-height: 1.5;
+  }
+
+  /* ── Layout ── */
+  .container { max-width: 860px; margin: 0 auto; padding: 2rem 1.25rem 4rem; }
+
+  /* ── Top bar ── */
+  .top-bar { display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.75rem; }
+  .logo { display: flex; align-items: baseline; gap: 10px; }
+  .logo-title { font-size: 20px; font-weight: 600; letter-spacing: -0.4px; }
+  .logo-count { font-size: 13px; color: var(--text-muted); font-weight: 400; }
+  .top-actions { display: flex; gap: 8px; align-items: center; }
+  .status-dot { width: 7px; height: 7px; border-radius: 50%; background: #4caf50; display: inline-block; margin-right: 4px; }
+  .status-dot.error { background: #e24b4a; }
+  .status-dot.loading { background: #ef9f27; animation: pulse 1s infinite; }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.4} }
+  .conn-label { font-size: 12px; color: var(--text-muted); }
+
+  /* ── Tabs ── */
+  .tabs { display: flex; border-bottom: 1px solid var(--border); margin-bottom: 1.5rem; }
+  .tab { padding: 9px 18px; font-size: 13px; color: var(--text-muted); cursor: pointer; border: none; border-bottom: 2px solid transparent; margin-bottom: -1px; background: none; font-family: var(--font); transition: color .15s; }
+  .tab:hover { color: var(--text); }
+  .tab.active { color: var(--text); font-weight: 500; border-bottom-color: var(--text); }
+
+  /* ── Filters ── */
+  .filters { display: flex; gap: 8px; margin-bottom: 1.25rem; flex-wrap: wrap; align-items: center; }
+  .filter-search {
+    flex: 1; min-width: 180px; padding: 8px 12px;
+    border: 1px solid var(--border-strong); border-radius: var(--radius-md);
+    font-size: 13px; background: var(--bg-card); color: var(--text);
+    font-family: var(--font); outline: none; transition: border-color .15s;
+  }
+  .filter-search:focus { border-color: var(--text); }
+  .filter-search::placeholder { color: var(--text-hint); }
+  .filter-pill {
+    padding: 6px 13px; border-radius: 100px; font-size: 12px; cursor: pointer;
+    border: 1px solid var(--border-strong); background: var(--bg-card);
+    color: var(--text-muted); font-family: var(--font); transition: all .15s; white-space: nowrap;
+  }
+  .filter-pill:hover { border-color: var(--text); color: var(--text); }
+  .filter-pill.active { background: var(--text); color: var(--bg); border-color: var(--text); }
+
+  /* ── Table ── */
+  .list-header {
+    display: grid; grid-template-columns: 1fr 130px 100px 80px 56px;
+    gap: 12px; padding: 0 0 8px; border-bottom: 1px solid var(--border);
+  }
+  .list-header span { font-size: 11px; color: var(--text-hint); font-weight: 500; text-transform: uppercase; letter-spacing: .6px; }
+  .sort-btn { background: none; border: none; cursor: pointer; color: var(--text-hint); font-size: 11px; font-family: var(--font); letter-spacing: .6px; text-transform: uppercase; font-weight: 500; padding: 0; }
+  .sort-btn:hover { color: var(--text); }
+  .jobs-list { display: flex; flex-direction: column; }
+  .job-row {
+    display: grid; grid-template-columns: 1fr 130px 100px 80px 56px;
+    align-items: center; gap: 12px; padding: 11px 10px;
+    border-bottom: 1px solid var(--border); cursor: pointer;
+    border-radius: var(--radius-sm); margin: 0 -10px; transition: background .12s;
+  }
+  .job-row:hover { background: var(--bg-surface); }
+  .job-row:hover .row-actions { opacity: 1; }
+  .job-company { font-weight: 500; font-size: 13px; }
+  .job-role { font-size: 12px; color: var(--text-muted); margin-top: 1px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .job-date { font-size: 12px; color: var(--text-muted); }
+  .row-actions { opacity: 0; display: flex; justify-content: flex-end; }
+  .btn-sm {
+    background: none; border: 1px solid var(--border-strong); padding: 4px 10px;
+    border-radius: var(--radius-sm); cursor: pointer; font-size: 11px;
+    color: var(--text-muted); font-family: var(--font); transition: all .12s;
+  }
+  .btn-sm:hover { background: var(--bg-surface); color: var(--text); }
+  .empty { text-align: center; padding: 3.5rem 0; color: var(--text-muted); font-size: 13px; }
+
+  /* ── Status badges ── */
+  .badge { display: inline-block; padding: 3px 10px; border-radius: 100px; font-size: 11px; font-weight: 500; }
+  .s-Wishlist  { background: #e8e7e0; color: #5a5955; }
+  .s-Applied   { background: #daeaf8; color: #1a5c96; }
+  .s-Interview { background: #fde8b6; color: #7a4e0a; }
+  .s-Offer     { background: #d4edba; color: #2e6611; }
+  .s-Rejected  { background: #fbd5d5; color: #8b1f1f; }
+  @media (prefers-color-scheme: dark) {
+    .s-Wishlist  { background: #3a3934; color: #b0ada6; }
+    .s-Applied   { background: #1a3a56; color: #7ab8e8; }
+    .s-Interview { background: #4a3210; color: #f0b444; }
+    .s-Offer     { background: #1e3d10; color: #80c040; }
+    .s-Rejected  { background: #4a1515; color: #e88080; }
+  }
+
+  /* ── Metric cards ── */
+  .metric-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 12px; margin-bottom: 1.5rem; }
+  .metric { background: var(--bg-surface); border-radius: var(--radius-md); padding: 1rem 1.1rem; }
+  .metric-label { font-size: 11px; color: var(--text-muted); text-transform: uppercase; letter-spacing: .5px; margin-bottom: 6px; }
+  .metric-value { font-size: 28px; font-weight: 600; letter-spacing: -1px; }
+  .metric-sub { font-size: 11px; color: var(--text-hint); margin-top: 2px; }
+  .metric-value.green { color: #3b8c1a; }
+  .metric-value.amber { color: #c47a10; }
+
+  /* ── Charts ── */
+  .chart-row { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 14px; }
+  .chart-card { background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 1.1rem; box-shadow: var(--shadow); }
+  .chart-title { font-size: 11px; color: var(--text-muted); text-transform: uppercase; letter-spacing: .6px; font-weight: 500; margin-bottom: 1rem; }
+  .legend-row { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 10px; }
+  .legend-item { display: flex; align-items: center; gap: 5px; font-size: 11px; color: var(--text-muted); }
+  .legend-dot { width: 10px; height: 10px; border-radius: 2px; flex-shrink: 0; }
+  .bar-track { background: var(--bg-surface); border-radius: 4px; overflow: hidden; height: 8px; flex: 1; }
+  .bar-fill { height: 100%; border-radius: 4px; transition: width .4s ease; }
+  .breakdown-row { display: flex; align-items: center; gap: 10px; padding: 8px 0; border-bottom: 1px solid var(--border); font-size: 12px; }
+  .breakdown-row:last-child { border-bottom: none; }
+  .breakdown-pct { min-width: 42px; text-align: right; color: var(--text-muted); }
+
+  /* ── Detail view ── */
+  .back-btn { background: none; border: none; color: var(--text-muted); cursor: pointer; font-size: 13px; font-family: var(--font); margin-bottom: 1.25rem; display: flex; align-items: center; gap: 6px; padding: 0; }
+  .back-btn:hover { color: var(--text); }
+  .detail-card { background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 1.5rem; box-shadow: var(--shadow); margin-bottom: 1rem; }
+  .detail-head { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 1.25rem; gap: 12px; }
+  .detail-company { font-size: 20px; font-weight: 600; letter-spacing: -0.3px; }
+  .detail-role { font-size: 13px; color: var(--text-muted); margin-top: 3px; }
+  .detail-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 1.25rem; }
+  .detail-field { background: var(--bg-surface); border-radius: var(--radius-sm); padding: 10px 12px; }
+  .detail-field-label { font-size: 11px; color: var(--text-muted); text-transform: uppercase; letter-spacing: .5px; margin-bottom: 4px; }
+  .detail-field-value { font-size: 13px; font-weight: 500; word-break: break-all; }
+  .notes-section { margin-top: 1rem; }
+  .notes-heading { font-size: 11px; color: var(--text-muted); text-transform: uppercase; letter-spacing: .5px; font-weight: 500; margin-bottom: 8px; }
+  .notes-body { font-size: 13px; color: var(--text-muted); line-height: 1.7; white-space: pre-wrap; }
+  .notes-empty { font-size: 13px; color: var(--text-hint); font-style: italic; }
+  .detail-actions { display: flex; gap: 8px; }
+
+  /* ── Buttons ── */
+  .btn { padding: 9px 18px; border-radius: var(--radius-md); font-size: 13px; font-family: var(--font); cursor: pointer; border: 1px solid var(--border-strong); background: none; color: var(--text); transition: all .12s; }
+  .btn:hover { background: var(--bg-surface); }
+  .btn-primary { background: var(--text); color: var(--bg); border-color: var(--text); font-weight: 500; }
+  .btn-primary:hover { opacity: .85; background: var(--text); }
+  .btn-danger { background: #e24b4a; color: #fff; border-color: #e24b4a; }
+  .btn-danger:hover { background: #c43a3a; }
+
+  /* ── Modal ── */
+  .overlay {
+    position: fixed; inset: 0; background: rgba(0,0,0,.45);
+    display: flex; align-items: center; justify-content: center;
+    z-index: 1000; padding: 1rem;
+  }
+  .modal {
+    background: var(--bg-card); border-radius: var(--radius-lg);
+    border: 1px solid var(--border-strong); padding: 1.75rem;
+    width: 500px; max-width: 100%; max-height: 90vh; overflow-y: auto;
+    box-shadow: var(--shadow-md);
+  }
+  .modal-title { font-size: 16px; font-weight: 600; margin-bottom: 1.5rem; }
+  .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+  .form-group { display: flex; flex-direction: column; gap: 5px; margin-bottom: 14px; }
+  .form-group.full { grid-column: 1 / -1; }
+  .form-label { font-size: 12px; color: var(--text-muted); font-weight: 500; }
+  .form-control {
+    padding: 9px 12px; border: 1px solid var(--border-strong); border-radius: var(--radius-sm);
+    font-size: 13px; background: var(--bg); color: var(--text); font-family: var(--font);
+    outline: none; transition: border-color .15s;
+  }
+  .form-control:focus { border-color: var(--text); }
+  textarea.form-control { resize: vertical; min-height: 90px; line-height: 1.6; }
+  .modal-footer { display: flex; gap: 8px; justify-content: flex-end; margin-top: 1.25rem; border-top: 1px solid var(--border); padding-top: 1.25rem; }
+
+  /* ── Setup screen ── */
+  .setup-screen {
+    max-width: 520px; margin: 6rem auto; background: var(--bg-card);
+    border: 1px solid var(--border); border-radius: var(--radius-lg);
+    padding: 2rem; box-shadow: var(--shadow-md);
+  }
+  .setup-icon { font-size: 32px; margin-bottom: 1rem; }
+  .setup-title { font-size: 20px; font-weight: 600; margin-bottom: .5rem; }
+  .setup-desc { font-size: 13px; color: var(--text-muted); line-height: 1.6; margin-bottom: 1.5rem; }
+  .setup-step { display: flex; gap: 12px; margin-bottom: 1rem; }
+  .step-num { width: 24px; height: 24px; border-radius: 50%; background: var(--text); color: var(--bg); font-size: 12px; font-weight: 600; display: flex; align-items: center; justify-content: center; flex-shrink: 0; margin-top: 1px; }
+  .step-text { font-size: 13px; color: var(--text-muted); line-height: 1.6; }
+  .step-text a { color: var(--text); }
+  .step-text code { font-family: var(--font-mono); background: var(--bg-surface); padding: 1px 5px; border-radius: 4px; font-size: 12px; }
+  .url-input-row { display: flex; gap: 8px; margin-top: 1.5rem; }
+  .url-input { flex: 1; padding: 10px 12px; border: 1px solid var(--border-strong); border-radius: var(--radius-md); font-size: 13px; background: var(--bg); color: var(--text); font-family: var(--font); outline: none; }
+  .url-input:focus { border-color: var(--text); }
+  .setup-error { margin-top: 10px; font-size: 12px; color: #e24b4a; }
+  .divider { border: none; border-top: 1px solid var(--border); margin: 1.5rem 0; }
+
+  /* ── Toast ── */
+  .toast {
+    position: fixed; bottom: 1.5rem; right: 1.5rem;
+    background: var(--text); color: var(--bg);
+    padding: 10px 18px; border-radius: var(--radius-md);
+    font-size: 13px; font-weight: 500; z-index: 2000;
+    transform: translateY(8px); opacity: 0;
+    transition: all .25s; pointer-events: none;
+  }
+  .toast.show { transform: translateY(0); opacity: 1; }
+
+  /* ── Responsive ── */
+  @media (max-width: 600px) {
+    .chart-row { grid-template-columns: 1fr; }
+    .detail-grid { grid-template-columns: 1fr; }
+    .list-header, .job-row { grid-template-columns: 1fr 90px 32px; }
+    .list-header :nth-child(3), .list-header :nth-child(4),
+    .job-row :nth-child(3), .job-row :nth-child(4) { display: none; }
+    .form-grid { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+
+<div id="app"></div>
+<div class="toast" id="toast"></div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<script>
+// ── Config ──────────────────────────────────────────
+const STORAGE_KEY = 'jobtracker_script_url';
+const STATUSES = ['Wishlist','Applied','Interview','Offer','Rejected'];
+const STATUS_COLORS = { Wishlist:'#888780', Applied:'#378ADD', Interview:'#EF9F27', Offer:'#5aad2a', Rejected:'#E24B4A' };
+
+// ── State ────────────────────────────────────────────
+let state = {
+  configured: false,
+  scriptUrl: localStorage.getItem(STORAGE_KEY) || '',
+  jobs: [],
+  loading: false,
+  syncing: false,
+  error: null,
+  tab: 'applications',
+  filter: 'All',
+  search: '',
+  sort: { field: 'date', dir: 'desc' },
+  modal: null,
+  detail: null,
+  editForm: {},
+  charts: {}
+};
+
+// ── Google Sheets API ────────────────────────────────
+async function apiGet() {
+  const url = state.scriptUrl + '?action=getAll';
+  const r = await fetch(url);
+  const data = await r.json();
+  if (data.error) throw new Error(data.error);
+  return data.jobs || [];
+}
+
+async function apiPost(payload) {
+  await fetch(state.scriptUrl, {
+    method: 'POST',
+    headers: { 'Content-Type': 'text/plain' },
+    body: JSON.stringify(payload),
+    redirect: 'follow'
+  });
+}
+
+async function loadJobs() {
+  if (!state.scriptUrl) return;
+  state.loading = true; render();
+  try {
+    state.jobs = await apiGet();
+    state.error = null;
+    state.configured = true;
+  } catch(e) {
+    state.error = 'Could not reach Google Sheets. Check your script URL.';
+    state.configured = !!state.jobs.length;
+  }
+  state.loading = false; render();
+}
+
+async function saveJob() {
+  const f = state.editForm;
+  if (!f.company || !f.role) return;
+  state.syncing = true;
+  if (!f.id) f.id = Date.now() + '';
+  const exists = state.jobs.find(j => j.id === f.id);
+  if (exists) {
+    Object.assign(exists, f);
+    await apiPost({ action: 'update', job: f });
+  } else {
+    state.jobs.unshift({ ...f });
+    await apiPost({ action: 'add', job: f });
+  }
+  state.modal = null; state.detail = { ...f };
+  state.syncing = false;
+  render(); showToast('Saved to Google Sheets ✓');
+}
+
+async function deleteJob(id) {
+  state.jobs = state.jobs.filter(j => j.id !== id);
+  state.modal = null; state.detail = null;
+  render(); showToast('Deleted');
+  await apiPost({ action: 'delete', id });
+}
+
+// ── Setup ────────────────────────────────────────────
+function setupConnect() {
+  const url = document.getElementById('setup-url').value.trim();
+  const err = document.getElementById('setup-err');
+  if (!url.startsWith('https://script.google.com')) {
+    err.textContent = 'URL must start with https://script.google.com …';
+    return;
+  }
+  state.scriptUrl = url;
+  localStorage.setItem(STORAGE_KEY, url);
+  err.textContent = '';
+  loadJobs();
+}
+
+// ── Helpers ──────────────────────────────────────────
+function fmt(d) {
+  if (!d) return '—';
+  const dt = new Date(d + 'T12:00:00');
+  return dt.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+}
+function genId() { return Date.now() + Math.floor(Math.random() * 1000) + ''; }
+function badge(status) {
+  return `<span class="badge s-${status}">${status}</span>`;
+}
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2500);
+}
+function getFiltered() {
+  let j = [...state.jobs];
+  if (state.filter !== 'All') j = j.filter(x => x.status === state.filter);
+  if (state.search) {
+    const q = state.search.toLowerCase();
+    j = j.filter(x => (x.company||'').toLowerCase().includes(q) || (x.role||'').toLowerCase().includes(q) || (x.location||'').toLowerCase().includes(q));
+  }
+  const sf = state.sort.field, sd = state.sort.dir;
+  j.sort((a, b) => {
+    let va = a[sf] || '', vb = b[sf] || '';
+    const cmp = va < vb ? -1 : va > vb ? 1 : 0;
+    return sd === 'asc' ? cmp : -cmp;
+  });
+  return j;
+}
+function toggleSort(f) {
+  if (state.sort.field === f) state.sort.dir = state.sort.dir === 'asc' ? 'desc' : 'asc';
+  else state.sort = { field: f, dir: 'desc' };
+  render();
+}
+function openModal(job) {
+  state.modal = 'form';
+  state.editForm = job ? { ...job } : { id: '', company: '', role: '', status: 'Applied', date: new Date().toISOString().slice(0,10), location: '', salary: '', notes: '', url: '' };
+  render();
+}
+function collectForm() {
+  ['company','role','status','date','location','salary','url','notes'].forEach(k => {
+    const el = document.getElementById('f-' + k);
+    if (el) state.editForm[k] = el.value.trim ? el.value.trim() : el.value;
+  });
+}
+
+// ── Render functions ─────────────────────────────────
+function renderSetup() {
+  return `
+<div class="container">
+<div class="setup-screen">
+  <div class="setup-icon">📋</div>
+  <div class="setup-title">Connect your Google Sheet</div>
+  <div class="setup-desc">Your job data lives in a Google Sheet. Follow these steps once to connect.</div>
+
+  <div class="setup-step">
+    <div class="step-num">1</div>
+    <div class="step-text">
+      <a href="https://sheets.new" target="_blank">Create a new Google Sheet</a> and name it
+      <code>Job Tracker</code>. Leave it open.
+    </div>
+  </div>
+
+  <div class="setup-step">
+    <div class="step-num">2</div>
+    <div class="step-text">
+      In the sheet, click <strong>Extensions → Apps Script</strong>.
+      Delete the existing code and paste the contents of <code>Code.gs</code>
+      (included in the download). Then click <strong>Save</strong>.
+    </div>
+  </div>
+
+  <div class="setup-step">
+    <div class="step-num">3</div>
+    <div class="step-text">
+      Click <strong>Deploy → New deployment</strong>. Choose type <strong>Web app</strong>.
+      Set <em>Execute as</em> to <strong>Me</strong> and <em>Who has access</em> to
+      <strong>Anyone</strong>. Click <strong>Deploy</strong> and authorize when prompted.
+      Copy the <strong>Web app URL</strong>.
+    </div>
+  </div>
+
+  <div class="setup-step">
+    <div class="step-num">4</div>
+    <div class="step-text">Paste the URL below and click Connect.</div>
+  </div>
+
+  <div class="url-input-row">
+    <input class="url-input" id="setup-url" placeholder="https://script.google.com/macros/s/…/exec" value="${state.scriptUrl}" />
+    <button class="btn btn-primary" onclick="setupConnect()">Connect</button>
+  </div>
+  <div class="setup-error" id="setup-err"></div>
+  ${state.error ? `<div class="setup-error" style="margin-top:8px">${state.error}</div>` : ''}
+</div>
+</div>`;
+}
+
+function renderApplications() {
+  const filtered = getFiltered();
+  const sf = state.sort.field, sd = state.sort.dir;
+  const arrow = f => sf === f ? (sd === 'asc' ? ' ↑' : ' ↓') : '';
+  return `
+<div class="filters">
+  <input class="filter-search" id="search-input" type="text" placeholder="Search company, role, location…" value="${state.search}" />
+  ${['All', ...STATUSES].map(s => {
+    const cnt = s === 'All' ? state.jobs.length : state.jobs.filter(j => j.status === s).length;
+    return `<button class="filter-pill${state.filter===s?' active':''}" onclick="state.filter='${s}';render()">${s} <span style="opacity:.65">${cnt}</span></button>`;
+  }).join('')}
+</div>
+<div class="list-header">
+  <span><button class="sort-btn" onclick="toggleSort('company')">Company / Role${arrow('company')}</button></span>
+  <span><button class="sort-btn" onclick="toggleSort('status')">Status${arrow('status')}</button></span>
+  <span><button class="sort-btn" onclick="toggleSort('date')">Applied${arrow('date')}</button></span>
+  <span>Location</span>
+  <span></span>
+</div>
+<div class="jobs-list">
+${filtered.length === 0
+  ? `<div class="empty">${state.loading ? 'Loading from Google Sheets…' : 'No applications found'}</div>`
+  : filtered.map(j => `
+<div class="job-row" onclick="openDetail('${j.id}')">
+  <div>
+    <div class="job-company">${j.company || '—'}</div>
+    <div class="job-role">${j.role || ''}</div>
+  </div>
+  <div>${badge(j.status || 'Applied')}</div>
+  <div class="job-date">${fmt(j.date)}</div>
+  <div class="job-date">${j.location || '—'}</div>
+  <div class="row-actions">
+    <button class="btn-sm" onclick="event.stopPropagation();openModal(state.jobs.find(x=>x.id==='${j.id}'))">Edit</button>
+  </div>
+</div>`).join('')}
+</div>`;
+}
+
+function openDetail(id) {
+  state.detail = state.jobs.find(j => j.id === id);
+  render();
+}
+
+function renderDetail(job) {
+  return `
+<button class="back-btn" onclick="state.detail=null;render()">← Back to applications</button>
+<div class="detail-card">
+  <div class="detail-head">
+    <div>
+      <div class="detail-company">${job.company}</div>
+      <div class="detail-role">${job.role}</div>
+    </div>
+    <div style="display:flex;gap:8px;align-items:center;flex-shrink:0">
+      ${badge(job.status || 'Applied')}
+      <button class="btn-sm" onclick="openModal(state.jobs.find(x=>x.id==='${job.id}'))">Edit</button>
+    </div>
+  </div>
+  <div class="detail-grid">
+    <div class="detail-field"><div class="detail-field-label">Applied</div><div class="detail-field-value">${fmt(job.date)}</div></div>
+    <div class="detail-field"><div class="detail-field-label">Location</div><div class="detail-field-value">${job.location || '—'}</div></div>
+    <div class="detail-field"><div class="detail-field-label">Salary</div><div class="detail-field-value">${job.salary || '—'}</div></div>
+    <div class="detail-field"><div class="detail-field-label">URL</div><div class="detail-field-value">${job.url ? `<a href="${job.url}" target="_blank" style="color:inherit">${job.url}</a>` : '—'}</div></div>
+  </div>
+  <div class="notes-section">
+    <div class="notes-heading">Notes</div>
+    ${job.notes ? `<div class="notes-body">${job.notes}</div>` : `<div class="notes-empty">No notes yet.</div>`}
+  </div>
+</div>
+<div class="detail-actions">
+  <button class="btn btn-primary" onclick="openModal(state.jobs.find(x=>x.id==='${job.id}'))">Edit application</button>
+  <button class="btn btn-danger" onclick="if(confirm('Delete this application?'))deleteJob('${job.id}')">Delete</button>
+</div>`;
+}
+
+function renderAnalytics() {
+  const j = state.jobs;
+  const total = j.length;
+  const byStatus = {};
+  STATUSES.forEach(s => byStatus[s] = j.filter(x => x.status === s).length);
+  const active = byStatus.Applied + byStatus.Interview;
+  const denominator = Object.values(byStatus).reduce((a,b)=>a+b,0) - byStatus.Wishlist;
+  const responseRate = denominator > 0 ? Math.round((byStatus.Interview + byStatus.Offer + byStatus.Rejected) / denominator * 100) : 0;
+  const byMonth = {};
+  j.forEach(x => { if (!x.date) return; const m = x.date.slice(0,7); byMonth[m] = (byMonth[m]||0)+1; });
+  const months = Object.keys(byMonth).sort().slice(-8);
+
+  setTimeout(() => {
+    Object.values(state.charts).forEach(c => c.destroy());
+    state.charts = {};
+    const dc = document.getElementById('donut-chart');
+    const bc = document.getElementById('bar-chart');
+    if (dc) state.charts.donut = new Chart(dc, {
+      type: 'doughnut',
+      data: { labels: STATUSES, datasets: [{ data: STATUSES.map(s => byStatus[s]), backgroundColor: STATUSES.map(s => STATUS_COLORS[s]), borderWidth: 0, hoverOffset: 4 }] },
+      options: { responsive: true, maintainAspectRatio: false, cutout: '68%', plugins: { legend: { display: false }, tooltip: { callbacks: { label: ctx => ` ${ctx.label}: ${ctx.raw}` } } } }
+    });
+    if (bc) state.charts.bar = new Chart(bc, {
+      type: 'bar',
+      data: {
+        labels: months.map(m => new Date(m + '-01').toLocaleDateString('en-US', { month: 'short', year: '2-digit' })),
+        datasets: [{ label: 'Applications', data: months.map(m => byMonth[m]), backgroundColor: '#378ADD', borderRadius: 5, borderSkipped: false }]
+      },
+      options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true, ticks: { stepSize: 1, color: '#888', font: { size: 11 } }, grid: { color: 'rgba(128,128,128,0.12)' } }, x: { ticks: { color: '#888', font: { size: 11 } }, grid: { display: false } } } }
+    });
+  }, 60);
+
+  return `
+<div class="metric-grid">
+  <div class="metric"><div class="metric-label">Total</div><div class="metric-value">${total}</div></div>
+  <div class="metric"><div class="metric-label">Active pipeline</div><div class="metric-value amber">${active}</div><div class="metric-sub">Applied + Interview</div></div>
+  <div class="metric"><div class="metric-label">Offers</div><div class="metric-value green">${byStatus.Offer}</div></div>
+  <div class="metric"><div class="metric-label">Response rate</div><div class="metric-value">${responseRate}%</div><div class="metric-sub">Excl. Wishlist</div></div>
+</div>
+<div class="chart-row">
+  <div class="chart-card">
+    <div class="chart-title">By status</div>
+    <div class="legend-row">${STATUSES.map(s => `<span class="legend-item"><span class="legend-dot" style="background:${STATUS_COLORS[s]}"></span>${s} ${byStatus[s]}</span>`).join('')}</div>
+    <div style="position:relative;height:190px"><canvas id="donut-chart" role="img" aria-label="Donut chart of application statuses">${STATUSES.map(s=>`${s}:${byStatus[s]}`).join(', ')}</canvas></div>
+  </div>
+  <div class="chart-card">
+    <div class="chart-title">Applications over time</div>
+    <div style="position:relative;height:220px"><canvas id="bar-chart" role="img" aria-label="Monthly applications bar chart"></canvas></div>
+  </div>
+</div>
+<div class="chart-card">
+  <div class="chart-title">Funnel breakdown</div>
+  ${STATUSES.filter(s => byStatus[s] > 0).map(s => {
+    const pct = total > 0 ? Math.round(byStatus[s]/total*100) : 0;
+    return `<div class="breakdown-row">
+      <div style="width:80px">${badge(s)}</div>
+      <div class="bar-track"><div class="bar-fill" style="width:${pct}%;background:${STATUS_COLORS[s]}"></div></div>
+      <div class="breakdown-pct">${byStatus[s]} (${pct}%)</div>
+    </div>`;
+  }).join('')}
+</div>`;
+}
+
+function renderModal() {
+  const f = state.editForm;
+  const isEdit = !!f.id;
+  return `
+<div class="overlay" onclick="if(event.target.classList.contains('overlay'))state.modal=null;render()">
+<div class="modal" onclick="event.stopPropagation()">
+  <div class="modal-title">${isEdit ? 'Edit application' : 'Add application'}</div>
+  <div class="form-grid">
+    <div class="form-group">
+      <label class="form-label">Company *</label>
+      <input class="form-control" id="f-company" value="${f.company||''}" placeholder="e.g. Stripe" />
+    </div>
+    <div class="form-group">
+      <label class="form-label">Role *</label>
+      <input class="form-control" id="f-role" value="${f.role||''}" placeholder="e.g. Frontend Engineer" />
+    </div>
+    <div class="form-group">
+      <label class="form-label">Status</label>
+      <select class="form-control" id="f-status">
+        ${STATUSES.map(s => `<option${f.status===s?' selected':''}>${s}</option>`).join('')}
+      </select>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Date applied</label>
+      <input class="form-control" type="date" id="f-date" value="${f.date||''}" />
+    </div>
+    <div class="form-group">
+      <label class="form-label">Location</label>
+      <input class="form-control" id="f-location" value="${f.location||''}" placeholder="Remote / City, ST" />
+    </div>
+    <div class="form-group">
+      <label class="form-label">Salary range</label>
+      <input class="form-control" id="f-salary" value="${f.salary||''}" placeholder="e.g. $120k–$150k" />
+    </div>
+    <div class="form-group full">
+      <label class="form-label">Job posting URL</label>
+      <input class="form-control" id="f-url" value="${f.url||''}" placeholder="https://…" />
+    </div>
+    <div class="form-group full">
+      <label class="form-label">Notes</label>
+      <textarea class="form-control" id="f-notes" placeholder="Interview notes, contacts, deadlines…">${f.notes||''}</textarea>
+    </div>
+  </div>
+  <div class="modal-footer">
+    ${isEdit ? `<button class="btn btn-danger" style="margin-right:auto" onclick="if(confirm('Delete?'))deleteJob('${f.id}')">Delete</button>` : ''}
+    <button class="btn" onclick="state.modal=null;render()">Cancel</button>
+    <button class="btn btn-primary" onclick="collectForm();saveJob()">${state.syncing ? 'Saving…' : 'Save to Sheets'}</button>
+  </div>
+</div>
+</div>`;
+}
+
+// ── Main render ──────────────────────────────────────
+function render() {
+  const app = document.getElementById('app');
+
+  if (!state.scriptUrl || (!state.configured && !state.loading)) {
+    app.innerHTML = renderSetup();
+    return;
+  }
+
+  let content = '';
+  if (state.tab === 'applications') {
+    content = state.detail ? renderDetail(state.detail) : renderApplications();
+  } else {
+    content = renderAnalytics();
+  }
+
+  const connStatus = state.loading || state.syncing
+    ? `<span class="status-dot loading"></span><span class="conn-label">${state.syncing ? 'Saving…' : 'Loading…'}</span>`
+    : state.error
+    ? `<span class="status-dot error"></span><span class="conn-label">Connection error</span>`
+    : `<span class="status-dot"></span><span class="conn-label">Google Sheets</span>`;
+
+  app.innerHTML = `
+<div class="container">
+  <div class="top-bar">
+    <div class="logo">
+      <span class="logo-title">Job Tracker</span>
+      <span class="logo-count">${state.jobs.length} application${state.jobs.length!==1?'s':''}</span>
+    </div>
+    <div class="top-actions">
+      <span style="display:flex;align-items:center;gap:6px">${connStatus}</span>
+      <button class="btn" onclick="state.scriptUrl='';localStorage.removeItem('${STORAGE_KEY}');state.configured=false;render()" title="Reconfigure" style="padding:8px 12px;font-size:12px">⚙ Settings</button>
+      <button class="btn btn-primary" onclick="openModal(null)">+ Add</button>
+    </div>
+  </div>
+  <div class="tabs">
+    <button class="tab${state.tab==='applications'?' active':''}" onclick="state.tab='applications';state.detail=null;render()">Applications</button>
+    <button class="tab${state.tab==='analytics'?' active':''}" onclick="state.tab='analytics';render()">Analytics</button>
+  </div>
+  ${content}
+  ${state.modal === 'form' ? renderModal() : ''}
+</div>`;
+
+  const si = document.getElementById('search-input');
+  if (si) si.addEventListener('input', e => { state.search = e.target.value; render(); });
+}
+
+// ── Boot ─────────────────────────────────────────────
+if (state.scriptUrl) {
+  state.configured = false;
+  loadJobs();
+} else {
+  render();
+}
+</script>
+</body>
+</html>
