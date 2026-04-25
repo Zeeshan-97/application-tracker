@@ -1,0 +1,410 @@
+
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:var(--font-sans);font-size:14px;color:var(--color-text-primary)}
+.app{padding:1rem 0;min-height:600px}
+.top-bar{display:flex;align-items:center;justify-content:space-between;margin-bottom:1.5rem}
+.app-title{font-size:20px;font-weight:500;letter-spacing:-0.3px}
+.app-title span{color:var(--color-text-secondary);font-weight:400;font-size:14px;margin-left:8px}
+.btn-add{background:var(--color-text-primary);color:var(--color-background-primary);border:none;padding:8px 16px;border-radius:var(--border-radius-md);font-size:13px;font-weight:500;cursor:pointer}
+.btn-add:hover{opacity:0.85}
+.tabs{display:flex;gap:0;border-bottom:0.5px solid var(--color-border-tertiary);margin-bottom:1.5rem}
+.tab{padding:8px 16px;font-size:13px;color:var(--color-text-secondary);cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-0.5px;background:none;border-top:none;border-left:none;border-right:none;font-family:var(--font-sans)}
+.tab.active{color:var(--color-text-primary);font-weight:500;border-bottom-color:var(--color-text-primary)}
+.filters{display:flex;gap:8px;margin-bottom:1.25rem;flex-wrap:wrap;align-items:center}
+.filter-search{flex:1;min-width:160px;padding:7px 12px;border:0.5px solid var(--color-border-secondary);border-radius:var(--border-radius-md);font-size:13px;background:var(--color-background-primary);color:var(--color-text-primary);font-family:var(--font-sans)}
+.filter-search:focus{outline:none;border-color:var(--color-text-primary)}
+.filter-pill{padding:6px 12px;border-radius:100px;font-size:12px;cursor:pointer;border:0.5px solid var(--color-border-secondary);background:var(--color-background-primary);color:var(--color-text-secondary);font-family:var(--font-sans)}
+.filter-pill.active{background:var(--color-text-primary);color:var(--color-background-primary);border-color:var(--color-text-primary)}
+.jobs-list{display:flex;flex-direction:column;gap:0}
+.job-row{display:grid;grid-template-columns:1fr 140px 90px 90px 36px;align-items:center;gap:12px;padding:12px 0;border-bottom:0.5px solid var(--color-border-tertiary);cursor:pointer;transition:background .1s}
+.job-row:hover{background:var(--color-background-secondary);margin:0 -12px;padding:12px 12px}
+.job-row:hover .job-actions{opacity:1}
+.job-company{font-weight:500;font-size:13px}
+.job-role{font-size:12px;color:var(--color-text-secondary);margin-top:2px}
+.job-date{font-size:12px;color:var(--color-text-secondary)}
+.status-badge{display:inline-block;padding:3px 9px;border-radius:100px;font-size:11px;font-weight:500;text-align:center}
+.s-wishlist{background:#D3D1C7;color:#444441}
+.s-applied{background:#B5D4F4;color:#0C447C}
+.s-interview{background:#FAC775;color:#633806}
+.s-offer{background:#C0DD97;color:#27500A}
+.s-rejected{background:#F7C1C1;color:#791F1F}
+.job-actions{opacity:0;display:flex;gap:4px;justify-content:flex-end}
+.btn-icon{background:none;border:0.5px solid var(--color-border-secondary);padding:4px 8px;border-radius:var(--border-radius-md);cursor:pointer;font-size:11px;color:var(--color-text-secondary);font-family:var(--font-sans)}
+.btn-icon:hover{background:var(--color-background-secondary);color:var(--color-text-primary)}
+.list-header{display:grid;grid-template-columns:1fr 140px 90px 90px 36px;gap:12px;padding:0 0 8px;border-bottom:0.5px solid var(--color-border-tertiary)}
+.list-header span{font-size:11px;color:var(--color-text-secondary);font-weight:500;text-transform:uppercase;letter-spacing:.5px}
+.empty{text-align:center;padding:3rem 0;color:var(--color-text-secondary);font-size:13px}
+.metric-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:12px;margin-bottom:1.5rem}
+.metric{background:var(--color-background-secondary);border-radius:var(--border-radius-md);padding:1rem}
+.metric-label{font-size:12px;color:var(--color-text-secondary);margin-bottom:6px}
+.metric-value{font-size:24px;font-weight:500}
+.metric-sub{font-size:11px;color:var(--color-text-secondary);margin-top:2px}
+.chart-row{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:1.5rem}
+.chart-card{background:var(--color-background-primary);border:0.5px solid var(--color-border-tertiary);border-radius:var(--border-radius-lg);padding:1rem}
+.chart-title{font-size:12px;color:var(--color-text-secondary);font-weight:500;text-transform:uppercase;letter-spacing:.5px;margin-bottom:1rem}
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.45);display:flex;align-items:center;justify-content:center;z-index:1000}
+.modal{background:var(--color-background-primary);border-radius:var(--border-radius-lg);border:0.5px solid var(--color-border-secondary);padding:1.5rem;width:480px;max-width:95vw;max-height:85vh;overflow-y:auto}
+.modal-title{font-size:16px;font-weight:500;margin-bottom:1.25rem}
+.form-row{margin-bottom:1rem}
+.form-label{font-size:12px;color:var(--color-text-secondary);margin-bottom:4px;display:block}
+.form-input{width:100%;padding:8px 12px;border:0.5px solid var(--color-border-secondary);border-radius:var(--border-radius-md);font-size:13px;background:var(--color-background-primary);color:var(--color-text-primary);font-family:var(--font-sans)}
+.form-input:focus{outline:none;border-color:var(--color-text-primary)}
+.form-select{width:100%;padding:8px 12px;border:0.5px solid var(--color-border-secondary);border-radius:var(--border-radius-md);font-size:13px;background:var(--color-background-primary);color:var(--color-text-primary);font-family:var(--font-sans)}
+.form-textarea{width:100%;padding:8px 12px;border:0.5px solid var(--color-border-secondary);border-radius:var(--border-radius-md);font-size:13px;background:var(--color-background-primary);color:var(--color-text-primary);font-family:var(--font-sans);resize:vertical;min-height:80px}
+.form-row-2{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:1rem}
+.modal-actions{display:flex;gap:8px;justify-content:flex-end;margin-top:1.25rem}
+.btn-secondary{background:none;border:0.5px solid var(--color-border-secondary);padding:8px 16px;border-radius:var(--border-radius-md);font-size:13px;cursor:pointer;font-family:var(--font-sans);color:var(--color-text-primary)}
+.btn-primary{background:var(--color-text-primary);color:var(--color-background-primary);border:none;padding:8px 16px;border-radius:var(--border-radius-md);font-size:13px;font-weight:500;cursor:pointer;font-family:var(--font-sans)}
+.btn-danger{background:#E24B4A;color:#fff;border:none;padding:8px 16px;border-radius:var(--border-radius-md);font-size:13px;cursor:pointer;font-family:var(--font-sans)}
+.detail-panel{background:var(--color-background-primary);border:0.5px solid var(--color-border-secondary);border-radius:var(--border-radius-lg);padding:1.25rem;margin-bottom:1rem}
+.detail-header{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:1rem}
+.detail-company{font-size:18px;font-weight:500}
+.detail-role{font-size:13px;color:var(--color-text-secondary);margin-top:2px}
+.detail-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:1rem}
+.detail-field{background:var(--color-background-secondary);border-radius:var(--border-radius-md);padding:10px 12px}
+.detail-field-label{font-size:11px;color:var(--color-text-secondary);margin-bottom:2px}
+.detail-field-value{font-size:13px;font-weight:500}
+.notes-label{font-size:12px;color:var(--color-text-secondary);font-weight:500;text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px}
+.notes-text{font-size:13px;color:var(--color-text-secondary);line-height:1.6;white-space:pre-wrap}
+.notes-empty{font-size:13px;color:var(--color-text-secondary);font-style:italic}
+.back-btn{background:none;border:none;color:var(--color-text-secondary);cursor:pointer;font-size:13px;padding:0;margin-bottom:1rem;display:flex;align-items:center;gap:4px;font-family:var(--font-sans)}
+.back-btn:hover{color:var(--color-text-primary)}
+.legend-row{display:flex;flex-wrap:wrap;gap:12px;margin-bottom:8px;font-size:12px;color:var(--color-text-secondary)}
+.legend-item{display:flex;align-items:center;gap:5px}
+.legend-dot{width:10px;height:10px;border-radius:2px;flex-shrink:0}
+.sort-btn{background:none;border:none;cursor:pointer;color:var(--color-text-secondary);font-size:11px;padding:0;font-family:var(--font-sans)}
+.sort-btn:hover{color:var(--color-text-primary)}
+</style>
+
+<h2 class="sr-only">Job application tracker — manage and analyze your job search</h2>
+<div class="app" id="root"></div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<script>
+const STATUSES = ['Wishlist','Applied','Interview','Offer','Rejected'];
+const STATUS_COLORS = {
+  Wishlist:'#888780', Applied:'#378ADD', Interview:'#EF9F27', Offer:'#639922', Rejected:'#E24B4A'
+};
+const STATUS_BG = {
+  Wishlist:'#D3D1C7', Applied:'#B5D4F4', Interview:'#FAC775', Offer:'#C0DD97', Rejected:'#F7C1C1'
+};
+const STATUS_TEXT = {
+  Wishlist:'#444441', Applied:'#0C447C', Interview:'#633806', Offer:'#27500A', Rejected:'#791F1F'
+};
+
+const SAMPLE = [
+  {id:1,company:'Stripe',role:'Senior Frontend Engineer',status:'Interview',date:'2025-04-10',location:'Remote',salary:'$150k–$180k',notes:'Had a great intro call with the hiring manager. Next step is a technical screen on April 22.',url:'stripe.com/jobs'},
+  {id:2,company:'Linear',role:'Product Designer',status:'Applied',date:'2025-04-08',location:'San Francisco, CA',salary:'$130k–$160k',notes:'Applied via LinkedIn. Referral from Marcus.',url:''},
+  {id:3,company:'Vercel',role:'Developer Advocate',status:'Offer',date:'2025-03-28',location:'Remote',salary:'$140k + equity',notes:'Offer received! Deadline April 28. Need to decide.',url:''},
+  {id:4,company:'Figma',role:'Staff Engineer',status:'Rejected',date:'2025-03-20',location:'San Francisco, CA',salary:'$200k+',notes:'Rejected after final round. Good experience though.',url:''},
+  {id:5,company:'Notion',role:'Product Engineer',status:'Applied',date:'2025-04-15',location:'New York, NY',salary:'$160k–$190k',notes:'',url:''},
+  {id:6,company:'Arc Browser',role:'Frontend Lead',status:'Wishlist',date:'2025-04-18',location:'Remote',salary:'',notes:'Interesting company. Check their jobs page.',url:''}
+];
+
+let state = {
+  tab: 'applications',
+  filter: 'All',
+  search: '',
+  sort: {field:'date',dir:'desc'},
+  modal: null,
+  detail: null,
+  jobs: [],
+  charts: {},
+  editForm: {}
+};
+
+async function loadJobs() {
+  try {
+    const r = await window.storage.get('jobs');
+    state.jobs = r ? JSON.parse(r.value) : SAMPLE;
+  } catch(e) {
+    state.jobs = SAMPLE;
+  }
+}
+
+async function saveJobs() {
+  try { await window.storage.set('jobs', JSON.stringify(state.jobs)); } catch(e) {}
+}
+
+function genId() { return Date.now() + Math.floor(Math.random()*1000); }
+
+function fmt(d) {
+  if(!d) return '—';
+  const dt = new Date(d+'T12:00:00');
+  return dt.toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'});
+}
+
+function getFiltered() {
+  let j = [...state.jobs];
+  if(state.filter !== 'All') j = j.filter(x=>x.status===state.filter);
+  if(state.search) {
+    const q = state.search.toLowerCase();
+    j = j.filter(x=>x.company.toLowerCase().includes(q)||x.role.toLowerCase().includes(q)||x.location.toLowerCase().includes(q));
+  }
+  j.sort((a,b)=>{
+    let va=a[state.sort.field]||'', vb=b[state.sort.field]||'';
+    if(state.sort.field==='date'){va=va||'0';vb=vb||'0';}
+    const cmp = va < vb ? -1 : va > vb ? 1 : 0;
+    return state.sort.dir==='asc' ? cmp : -cmp;
+  });
+  return j;
+}
+
+function getStats() {
+  const j = state.jobs;
+  const total = j.length;
+  const byStatus = {};
+  STATUSES.forEach(s=>{ byStatus[s]=j.filter(x=>x.status===s).length; });
+  const active = byStatus.Applied + byStatus.Interview;
+  const responseRate = total > 0 ? Math.round((byStatus.Interview+byStatus.Offer+byStatus.Rejected)/Math.max(byStatus.Applied+byStatus.Interview+byStatus.Offer+byStatus.Rejected,1)*100) : 0;
+  return {total, byStatus, active, responseRate, offers: byStatus.Offer};
+}
+
+function toggleSort(field) {
+  if(state.sort.field===field) state.sort.dir = state.sort.dir==='asc'?'desc':'asc';
+  else state.sort = {field,dir:'desc'};
+  render();
+}
+
+function openModal(job) {
+  state.modal = 'form';
+  state.editForm = job ? {...job} : {id:null,company:'',role:'',status:'Applied',date:new Date().toISOString().slice(0,10),location:'',salary:'',notes:'',url:''};
+  render();
+}
+
+function closeModal() { state.modal = null; render(); }
+
+function saveJob() {
+  const f = state.editForm;
+  if(!f.company || !f.role) return;
+  if(f.id) {
+    const idx = state.jobs.findIndex(j=>j.id===f.id);
+    if(idx>=0) state.jobs[idx] = {...f};
+  } else {
+    state.jobs.unshift({...f, id:genId()});
+  }
+  saveJobs();
+  state.modal = null;
+  render();
+}
+
+function deleteJob(id) {
+  state.jobs = state.jobs.filter(j=>j.id!==id);
+  saveJobs();
+  state.modal = null;
+  state.detail = null;
+  render();
+}
+
+function openDetail(job) {
+  state.detail = job;
+  render();
+}
+
+function renderBadge(status) {
+  return `<span class="status-badge" style="background:${STATUS_BG[status]};color:${STATUS_TEXT[status]}">${status}</span>`;
+}
+
+function renderApplications() {
+  const filtered = getFiltered();
+  const sf = state.sort.field, sd = state.sort.dir;
+  const sortArrow = (f) => sf===f ? (sd==='asc'?'↑':'↓') : '';
+  return `
+<div class="filters">
+  <input class="filter-search" type="text" placeholder="Search company, role, location…" value="${state.search}" id="search-input" />
+  ${['All',...STATUSES].map(s=>`<button class="filter-pill${state.filter===s?' active':''}" onclick="state.filter='${s}';render()">${s}${s!=='All'?` (${state.jobs.filter(j=>j.status===s).length})`:'('+state.jobs.length+')'}</button>`).join('')}
+</div>
+<div class="list-header">
+  <span><button class="sort-btn" onclick="toggleSort('company')">Company / Role ${sortArrow('company')}</button></span>
+  <span><button class="sort-btn" onclick="toggleSort('status')">Status ${sortArrow('status')}</button></span>
+  <span><button class="sort-btn" onclick="toggleSort('date')">Applied ${sortArrow('date')}</button></span>
+  <span>Location</span>
+  <span></span>
+</div>
+<div class="jobs-list">
+${filtered.length===0?`<div class="empty">No applications found</div>`:filtered.map(j=>`
+<div class="job-row" onclick="openDetail(state.jobs.find(x=>x.id===${j.id}))">
+  <div>
+    <div class="job-company">${j.company}</div>
+    <div class="job-role">${j.role}</div>
+  </div>
+  <div>${renderBadge(j.status)}</div>
+  <div class="job-date">${fmt(j.date)}</div>
+  <div class="job-date">${j.location||'—'}</div>
+  <div class="job-actions">
+    <button class="btn-icon" onclick="event.stopPropagation();openModal(state.jobs.find(x=>x.id===${j.id}))">Edit</button>
+  </div>
+</div>`).join('')}
+</div>`;
+}
+
+function renderDetail(job) {
+  return `
+<button class="back-btn" onclick="state.detail=null;render()">← Back to applications</button>
+<div class="detail-panel">
+  <div class="detail-header">
+    <div>
+      <div class="detail-company">${job.company}</div>
+      <div class="detail-role">${job.role}</div>
+    </div>
+    <div style="display:flex;gap:8px;align-items:center">
+      ${renderBadge(job.status)}
+      <button class="btn-icon" onclick="openModal(state.jobs.find(x=>x.id===${job.id}))">Edit</button>
+    </div>
+  </div>
+  <div class="detail-grid">
+    <div class="detail-field"><div class="detail-field-label">Applied</div><div class="detail-field-value">${fmt(job.date)}</div></div>
+    <div class="detail-field"><div class="detail-field-label">Location</div><div class="detail-field-value">${job.location||'—'}</div></div>
+    <div class="detail-field"><div class="detail-field-label">Salary</div><div class="detail-field-value">${job.salary||'—'}</div></div>
+    <div class="detail-field"><div class="detail-field-label">URL</div><div class="detail-field-value" style="font-size:12px;word-break:break-all">${job.url||'—'}</div></div>
+  </div>
+  <div class="notes-label">Notes</div>
+  ${job.notes ? `<div class="notes-text">${job.notes}</div>` : `<div class="notes-empty">No notes yet. Edit to add some.</div>`}
+</div>
+<div style="display:flex;gap:8px">
+  <button class="btn-primary" onclick="openModal(state.jobs.find(x=>x.id===${job.id}))">Edit application</button>
+  <button class="btn-danger" onclick="if(confirm('Delete this application?'))deleteJob(${job.id})">Delete</button>
+</div>`;
+}
+
+function renderAnalytics() {
+  const stats = getStats();
+  const byMonth = {};
+  state.jobs.forEach(j=>{
+    if(!j.date) return;
+    const m = j.date.slice(0,7);
+    byMonth[m] = (byMonth[m]||0)+1;
+  });
+  const months = Object.keys(byMonth).sort().slice(-6);
+  setTimeout(()=>{
+    if(state.charts.donut) state.charts.donut.destroy();
+    if(state.charts.bar) state.charts.bar.destroy();
+    const dc = document.getElementById('donut-chart');
+    const bc = document.getElementById('bar-chart');
+    if(dc) state.charts.donut = new Chart(dc,{
+      type:'doughnut',
+      data:{
+        labels:STATUSES,
+        datasets:[{data:STATUSES.map(s=>stats.byStatus[s]),backgroundColor:STATUSES.map(s=>STATUS_COLORS[s]),borderWidth:0,hoverOffset:4}]
+      },
+      options:{responsive:true,maintainAspectRatio:false,cutout:'65%',plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>`${ctx.label}: ${ctx.raw}`}}}}
+    });
+    if(bc) state.charts.bar = new Chart(bc,{
+      type:'bar',
+      data:{
+        labels:months.map(m=>{ const d=new Date(m+'-01'); return d.toLocaleDateString('en-US',{month:'short',year:'2-digit'}); }),
+        datasets:[{label:'Applications',data:months.map(m=>byMonth[m]),backgroundColor:'#378ADD',borderRadius:4,borderSkipped:false}]
+      },
+      options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{y:{beginAtZero:true,ticks:{stepSize:1,color:'#888780',font:{size:11}},grid:{color:'rgba(136,135,128,0.15)'}},x:{ticks:{color:'#888780',font:{size:11}},grid:{display:false}}}}
+    });
+  },50);
+  return `
+<div class="metric-grid">
+  <div class="metric"><div class="metric-label">Total applications</div><div class="metric-value">${stats.total}</div></div>
+  <div class="metric"><div class="metric-label">Active pipeline</div><div class="metric-value">${stats.active}</div><div class="metric-sub">Applied + Interview</div></div>
+  <div class="metric"><div class="metric-label">Offers received</div><div class="metric-value" style="color:#639922">${stats.offers}</div></div>
+  <div class="metric"><div class="metric-label">Response rate</div><div class="metric-value">${stats.responseRate}%</div><div class="metric-sub">Excl. wishlist</div></div>
+</div>
+<div class="chart-row">
+  <div class="chart-card">
+    <div class="chart-title">Status breakdown</div>
+    <div class="legend-row">
+      ${STATUSES.map(s=>`<span class="legend-item"><span class="legend-dot" style="background:${STATUS_COLORS[s]}"></span>${s} ${stats.byStatus[s]}</span>`).join('')}
+    </div>
+    <div style="position:relative;height:200px"><canvas id="donut-chart" role="img" aria-label="Donut chart showing job application status distribution">${STATUSES.map(s=>`${s}: ${stats.byStatus[s]}`).join(', ')}</canvas></div>
+  </div>
+  <div class="chart-card">
+    <div class="chart-title">Applications over time</div>
+    <div style="position:relative;height:230px"><canvas id="bar-chart" role="img" aria-label="Bar chart showing number of applications per month">${months.map(m=>`${m}: ${byMonth[m]}`).join(', ')}</canvas></div>
+  </div>
+</div>
+<div class="chart-card" style="margin-top:0">
+  <div class="chart-title">Status breakdown by company</div>
+  <div style="display:flex;flex-direction:column;gap:0">
+    ${STATUSES.filter(s=>state.jobs.some(j=>j.status===s)).map(s=>{
+      const jobs = state.jobs.filter(j=>j.status===s);
+      const pct = Math.round(jobs.length/state.jobs.length*100);
+      return `<div style="display:flex;align-items:center;gap:12px;padding:8px 0;border-bottom:0.5px solid var(--color-border-tertiary)">
+        <div style="width:70px">${renderBadge(s)}</div>
+        <div style="flex:1;height:8px;background:var(--color-background-secondary);border-radius:4px;overflow:hidden">
+          <div style="height:100%;width:${pct}%;background:${STATUS_COLORS[s]};border-radius:4px;transition:width .3s"></div>
+        </div>
+        <div style="font-size:12px;color:var(--color-text-secondary);min-width:50px;text-align:right">${jobs.length} (${pct}%)</div>
+      </div>`;
+    }).join('')}
+  </div>
+</div>`;
+}
+
+function renderModal() {
+  const f = state.editForm;
+  const isEdit = !!f.id;
+  return `
+<div class="modal-overlay" onclick="if(event.target.classList.contains('modal-overlay'))closeModal()">
+<div class="modal">
+  <div class="modal-title">${isEdit?'Edit application':'Add application'}</div>
+  <div class="form-row-2">
+    <div class="form-row" style="margin-bottom:0"><label class="form-label">Company *</label><input class="form-input" id="f-company" value="${f.company||''}" placeholder="e.g. Stripe" /></div>
+    <div class="form-row" style="margin-bottom:0"><label class="form-label">Role *</label><input class="form-input" id="f-role" value="${f.role||''}" placeholder="e.g. Frontend Engineer" /></div>
+  </div>
+  <div class="form-row-2" style="margin-top:1rem">
+    <div class="form-row" style="margin-bottom:0"><label class="form-label">Status</label>
+      <select class="form-select" id="f-status">${STATUSES.map(s=>`<option${f.status===s?' selected':''}>${s}</option>`).join('')}</select>
+    </div>
+    <div class="form-row" style="margin-bottom:0"><label class="form-label">Date applied</label><input class="form-input" type="date" id="f-date" value="${f.date||''}" /></div>
+  </div>
+  <div class="form-row-2" style="margin-top:1rem">
+    <div class="form-row" style="margin-bottom:0"><label class="form-label">Location</label><input class="form-input" id="f-location" value="${f.location||''}" placeholder="Remote / City, ST" /></div>
+    <div class="form-row" style="margin-bottom:0"><label class="form-label">Salary range</label><input class="form-input" id="f-salary" value="${f.salary||''}" placeholder="e.g. $120k–$150k" /></div>
+  </div>
+  <div class="form-row" style="margin-top:1rem"><label class="form-label">Job URL</label><input class="form-input" id="f-url" value="${f.url||''}" placeholder="https://…" /></div>
+  <div class="form-row"><label class="form-label">Notes</label><textarea class="form-textarea" id="f-notes" placeholder="Interview notes, contacts, deadlines…">${f.notes||''}</textarea></div>
+  <div class="modal-actions">
+    ${isEdit?`<button class="btn-danger" onclick="if(confirm('Delete?'))deleteJob(${f.id})">Delete</button>`:''}
+    <button class="btn-secondary" onclick="closeModal()">Cancel</button>
+    <button class="btn-primary" onclick="collectForm();saveJob()">Save</button>
+  </div>
+</div>
+</div>`;
+}
+
+function collectForm() {
+  state.editForm.company = document.getElementById('f-company').value.trim();
+  state.editForm.role = document.getElementById('f-role').value.trim();
+  state.editForm.status = document.getElementById('f-status').value;
+  state.editForm.date = document.getElementById('f-date').value;
+  state.editForm.location = document.getElementById('f-location').value.trim();
+  state.editForm.salary = document.getElementById('f-salary').value.trim();
+  state.editForm.url = document.getElementById('f-url').value.trim();
+  state.editForm.notes = document.getElementById('f-notes').value.trim();
+}
+
+function render() {
+  const root = document.getElementById('root');
+  let body = '';
+  if(state.detail && state.tab==='applications') {
+    body = renderDetail(state.detail);
+  } else if(state.tab==='applications') {
+    body = renderApplications();
+  } else {
+    body = renderAnalytics();
+  }
+  root.innerHTML = `
+<div class="top-bar">
+  <div class="app-title">Job tracker <span>${state.jobs.length} applications</span></div>
+  <button class="btn-add" onclick="openModal(null)">+ Add application</button>
+</div>
+<div class="tabs">
+  <button class="tab${state.tab==='applications'?' active':''}" onclick="state.tab='applications';state.detail=null;render()">Applications</button>
+  <button class="tab${state.tab==='analytics'?' active':''}" onclick="state.tab='analytics';render()">Analytics</button>
+</div>
+${body}
+${state.modal==='form'?renderModal():''}`;
+
+  const si = document.getElementById('search-input');
+  if(si) si.addEventListener('input', e=>{ state.search=e.target.value; render(); });
+}
+
+loadJobs().then(render);
+</script>
