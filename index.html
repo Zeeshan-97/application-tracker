@@ -354,47 +354,49 @@ async function loadJobs() {
 // }
   async function saveJob() {
   const f = state.editForm;
-  // Basic validation: ensure company and role are filled [cite: 15]
+  
+  // Validation [cite: 16]
   if (!f.company || !f.role) {
-    alert("Please fill in Company and Role.");
+    alert("Company and Role are required.");
     return;
   }
 
   state.syncing = true;
-  render(); // Show the 'Saving...' state in the UI
+  render();
 
-  // Ensure an ID exists [cite: 17, 20]
+  // Ensure an ID exists [cite: 16]
   if (!f.id) f.id = Date.now() + '';
 
-  const payload = {
-    action: state.jobs.find(j => j.id === f.id) ? 'update' : 'add',
-    job: f
+  // Check if we are updating or adding [cite: 17, 20]
+  const isUpdate = state.jobs.some(j => j.id === f.id);
+  const payload = { 
+    action: isUpdate ? 'update' : 'add', 
+    job: f 
   };
 
   try {
-    // We send as 'text/plain' to avoid complex CORS preflight checks 
+    // We do the fetch directly here to avoid "not defined" errors
     await fetch(state.scriptUrl, {
       method: 'POST',
-      mode: 'no-cors', // Critical for sending to Google Script from GitHub
+      mode: 'no-cors', // Firefox friendly for cross-origin redirects
       headers: { 'Content-Type': 'text/plain' },
       body: JSON.stringify(payload)
     });
 
-    // Since 'no-cors' doesn't return a response we can read, 
-    // we optimistically update the UI.
-    if (payload.action === 'add') {
-      state.jobs.unshift({ ...f });
-    } else {
+    // Optimistic UI update [cite: 11, 12]
+    if (isUpdate) {
       const idx = state.jobs.findIndex(j => j.id === f.id);
-      if (idx !== -1) state.jobs[idx] = { ...f };
+      state.jobs[idx] = { ...f };
+    } else {
+      state.jobs.unshift({ ...f });
     }
 
     state.modal = null;
     state.detail = { ...f };
-    showToast('Sent to Google Sheets ✓');
+    showToast('Saved to Google Sheets ✓');
   } catch (e) {
     console.error("Save error:", e);
-    showToast('Error saving data');
+    showToast('Error connecting to script');
   } finally {
     state.syncing = false;
     render();
