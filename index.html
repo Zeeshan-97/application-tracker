@@ -335,22 +335,70 @@ async function loadJobs() {
   state.loading = false; render();
 }
 
-async function saveJob() {
+// async function saveJob() {
+//   const f = state.editForm;
+//   if (!f.company || !f.role) return;
+//   state.syncing = true;
+//   if (!f.id) f.id = Date.now() + '';
+//   const exists = state.jobs.find(j => j.id === f.id);
+//   if (exists) {
+//     Object.assign(exists, f);
+//     await apiPost({ action: 'update', job: f });
+//   } else {
+//     state.jobs.unshift({ ...f });
+//     await apiPost({ action: 'add', job: f });
+//   }
+//   state.modal = null; state.detail = { ...f };
+//   state.syncing = false;
+//   render(); showToast('Saved to Google Sheets ✓');
+// }
+  async function saveJob() {
   const f = state.editForm;
-  if (!f.company || !f.role) return;
-  state.syncing = true;
-  if (!f.id) f.id = Date.now() + '';
-  const exists = state.jobs.find(j => j.id === f.id);
-  if (exists) {
-    Object.assign(exists, f);
-    await apiPost({ action: 'update', job: f });
-  } else {
-    state.jobs.unshift({ ...f });
-    await apiPost({ action: 'add', job: f });
+  // Basic validation: ensure company and role are filled [cite: 15]
+  if (!f.company || !f.role) {
+    alert("Please fill in Company and Role.");
+    return;
   }
-  state.modal = null; state.detail = { ...f };
-  state.syncing = false;
-  render(); showToast('Saved to Google Sheets ✓');
+
+  state.syncing = true;
+  render(); // Show the 'Saving...' state in the UI
+
+  // Ensure an ID exists [cite: 17, 20]
+  if (!f.id) f.id = Date.now() + '';
+
+  const payload = {
+    action: state.jobs.find(j => j.id === f.id) ? 'update' : 'add',
+    job: f
+  };
+
+  try {
+    // We send as 'text/plain' to avoid complex CORS preflight checks 
+    await fetch(state.scriptUrl, {
+      method: 'POST',
+      mode: 'no-cors', // Critical for sending to Google Script from GitHub
+      headers: { 'Content-Type': 'text/plain' },
+      body: JSON.stringify(payload)
+    });
+
+    // Since 'no-cors' doesn't return a response we can read, 
+    // we optimistically update the UI.
+    if (payload.action === 'add') {
+      state.jobs.unshift({ ...f });
+    } else {
+      const idx = state.jobs.findIndex(j => j.id === f.id);
+      if (idx !== -1) state.jobs[idx] = { ...f };
+    }
+
+    state.modal = null;
+    state.detail = { ...f };
+    showToast('Sent to Google Sheets ✓');
+  } catch (e) {
+    console.error("Save error:", e);
+    showToast('Error saving data');
+  } finally {
+    state.syncing = false;
+    render();
+  }
 }
 
 async function deleteJob(id) {
